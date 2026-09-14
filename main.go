@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -14,17 +16,27 @@ func main() {
 	}
 	defer file.Close()
 
-	data := make([]byte, 8)
+	currentLineContents := ""
 	for {
-		_, err := file.Read(data)
+		buffer := make([]byte, 8)
+		n, err := file.Read(buffer)
 		if err != nil {
-			if err == io.EOF {
+			if currentLineContents != "" {
+				fmt.Printf("read: %s\n", currentLineContents)
+				currentLineContents = ""
+			}
+			if errors.Is(err, io.EOF) {
 				break
 			}
-
-			os.Exit(1)
+			fmt.Printf("error: %s\n", err.Error())
+			break
 		}
-
-		fmt.Printf("read: %s\n", data)
+		str := string(buffer[:n])
+		parts := strings.Split(str, "\n")
+		for i := 0; i < len(parts)-1; i++ {
+			fmt.Printf("read: %s%s\n", currentLineContents, parts[i])
+			currentLineContents = ""
+		}
+		currentLineContents += parts[len(parts)-1]
 	}
 }
