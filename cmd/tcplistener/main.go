@@ -1,12 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io"
+	"httpz/internal/request"
 	"net"
 	"os"
-	"strings"
 )
 
 const port = ":42069"
@@ -30,46 +28,17 @@ func main() {
 
 		fmt.Println("Accepted connection from", con.RemoteAddr())
 
-		lines := getLinesChannel(con)
-		for v := range lines {
-			fmt.Printf("%s\n", v)
+		req, err := request.RequestFromReader(con)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
+
+		fmt.Printf("Request line:\n")
+		fmt.Printf("- Method: %s\n", req.RequestLine.Method)
+		fmt.Printf("- Target: %s\n", req.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %s\n", req.RequestLine.HttpVersion)
+
 		fmt.Println("Connection to ", con.RemoteAddr(), "closed")
 	}
-}
-
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	linesChan := make(chan string)
-
-	go func() {
-		defer f.Close()
-		defer close(linesChan)
-
-		currentLineContents := ""
-		for {
-			buffer := make([]byte, 8)
-			n, err := f.Read(buffer)
-			if err != nil {
-				if currentLineContents != "" {
-					linesChan <- currentLineContents
-					currentLineContents = ""
-				}
-				if errors.Is(err, io.EOF) {
-					break
-				}
-				fmt.Printf("error: %s\n", err.Error())
-				break
-			}
-			str := string(buffer[:n])
-			parts := strings.Split(str, "\n")
-			for i := 0; i < len(parts)-1; i++ {
-				fmt.Printf("read: %s%s\n", currentLineContents, parts[i])
-				linesChan <- currentLineContents + parts[i]
-				currentLineContents = ""
-			}
-			currentLineContents += parts[len(parts)-1]
-		}
-	}()
-
-	return linesChan
 }
