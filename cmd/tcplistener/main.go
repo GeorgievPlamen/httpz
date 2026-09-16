@@ -43,6 +43,8 @@ func main() {
 		for key := range maps.Keys(req.Headers) {
 			fmt.Printf("- %s: %s\n", key, req.Headers[key])
 		}
+		fmt.Printf("Body:\n")
+		fmt.Println(string(req.Body))
 
 		fmt.Println("Connection to ", con.RemoteAddr(), "closed")
 	}
