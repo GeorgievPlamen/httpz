@@ -2,9 +2,7 @@ package headers
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"strings"
 )
@@ -27,29 +25,19 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 		return len([]byte(Clrf)), true, nil
 	}
 
-	buff := make([]byte, 1024)
-	reader := bytes.NewReader(data[:endIndex])
-	read, err := reader.Read(buff)
-	if err != nil {
-		if errors.Is(err, io.EOF) {
-			done = true
-		} else {
-			return n, done, err
-		}
+	kvpLine := data[:endIndex]
+	read := len(kvpLine)
+
+	if kvpLine[0] == []byte(" ")[0] {
+		return n, done, fmt.Errorf("Header cannot start with a whitespace: %s", kvpLine)
 	}
 
-	buff = buff[:read]
-
-	if buff[0] == []byte(" ")[0] {
-		return n, done, fmt.Errorf("Header cannot start with a whitespace: %s", buff)
-	}
-
-	indexOfSeparator := strings.Index(string(buff), ":")
+	indexOfSeparator := strings.Index(string(kvpLine), ":")
 
 	if indexOfSeparator == -1 {
 		return n, done, fmt.Errorf("Header KVP's have to be separated by a ':'")
 	}
-	kvp := []string{string(buff[:indexOfSeparator]), string(buff[indexOfSeparator+1:])}
+	kvp := []string{string(kvpLine[:indexOfSeparator]), string(kvpLine[indexOfSeparator+1:])}
 
 	keyHasTrailingWhitespace := strings.HasSuffix(kvp[0], " ")
 	if keyHasTrailingWhitespace {
