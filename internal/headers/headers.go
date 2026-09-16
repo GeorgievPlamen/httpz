@@ -77,7 +77,13 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 		return n, done, fmt.Errorf("Header key cannot has invalid characters")
 	}
 	valueTrimmed := strings.TrimSpace(kvp[1])
-	h[key] = valueTrimmed
+
+	existingVal, ok := h[key]
+	if ok {
+		h[key] = fmt.Sprintf("%s, %s", existingVal, valueTrimmed)
+	} else {
+		h[key] = valueTrimmed
+	}
 
 	n = read + len([]byte(Clrf))
 	return n, done, nil
