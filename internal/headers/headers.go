@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 )
 
@@ -54,14 +55,32 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	if keyHasTrailingWhitespace {
 		return n, done, fmt.Errorf("Header key cannot have trailing white spaces")
 	}
-	key := strings.Fields(kvp[0])
-	if len(key) != 1 {
+	keyParts := strings.Fields(kvp[0])
+	if len(keyParts) != 1 {
 		return n, done, fmt.Errorf("Header key cannot have white spaces in the middle")
 	}
+	key := strings.ToLower(keyParts[0])
+	validKey := true
+	for _, v := range key {
+		if (v >= 'A' && v <= 'Z') ||
+			(v >= 'a' && v <= 'z') ||
+			(v >= '0' && v <= '9') ||
+			slices.Contains(tokenChars, v) {
+			continue
+		} else {
+			validKey = false
+			break
+		}
+	}
 
+	if !validKey {
+		return n, done, fmt.Errorf("Header key cannot has invalid characters")
+	}
 	valueTrimmed := strings.TrimSpace(kvp[1])
-	h[key[0]] = valueTrimmed
+	h[key] = valueTrimmed
 
 	n = read + len([]byte(Clrf))
 	return n, done, nil
 }
+
+var tokenChars = []rune{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}
