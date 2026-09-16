@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"httpz/internal/request"
+	"maps"
 	"net"
 	"os"
 )
@@ -38,6 +39,10 @@ func main() {
 		fmt.Printf("- Method: %s\n", req.RequestLine.Method)
 		fmt.Printf("- Target: %s\n", req.RequestLine.RequestTarget)
 		fmt.Printf("- Version: %s\n", req.RequestLine.HttpVersion)
+		fmt.Printf("Headers:\n")
+		for key := range maps.Keys(req.Headers) {
+			fmt.Printf("- %s: %s\n", key, req.Headers[key])
+		}
 
 		fmt.Println("Connection to ", con.RemoteAddr(), "closed")
 	}
