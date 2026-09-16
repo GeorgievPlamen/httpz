@@ -6,14 +6,17 @@ import (
 	"fmt"
 	"httpz/internal/headers"
 	"io"
+	"strconv"
 	"strings"
 )
 
 type Request struct {
 	RequestLine RequestLine
 	Headers     headers.Headers
+	Body        []byte
 
-	state requestState
+	state          requestState
+	bodyLengthRead int
 }
 
 type RequestLine struct {
@@ -27,6 +30,7 @@ type requestState int
 const (
 	requestStateInitialized requestState = iota
 	requestStateParsingHeaders
+	requestStateParsingBody
 	requestStateDone
 )
 
@@ -41,6 +45,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	req := &Request{
 		state:   requestStateInitialized,
 		Headers: headers.NewHeaders(),
+		Body:    make([]byte, 0),
 	}
 	for req.state != requestStateDone {
 		if readToIndex >= len(buf) {
@@ -157,9 +162,29 @@ func (r *Request) parseSingle(data []byte) (int, error) {
 			return 0, err
 		}
 		if done {
-			r.state = requestStateDone
+			r.state = requestStateParsingBody
 		}
 		return n, nil
+	case requestStateParsingBody:
+		contentLengthRaw := r.Headers.Get("Content-Length")
+		contentLength, err := strconv.Atoi(contentLengthRaw)
+		if err != nil {
+			r.state = requestStateDone
+			return 0, nil
+		}
+		if len(data) < contentLength {
+			return 0, nil
+		}
+		if len(data) > contentLength {
+			return 0, fmt.Errorf("Body is greater then content length")
+		}
+
+		if len(data) == contentLength {
+			r.state = requestStateDone
+			r.Body = append(r.Body, data...)
+		}
+
+		return len(data), nil
 	case requestStateDone:
 		return 0, fmt.Errorf("error: trying to read data in a done state")
 	default:
