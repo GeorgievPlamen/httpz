@@ -17,6 +17,19 @@ const (
 
 const clrf = "\r\n"
 
+func getStatusLine(statusCode StatusCode) []byte {
+	reasonPhrase := ""
+	switch statusCode {
+	case StatusCodeOk:
+		reasonPhrase = "OK"
+	case StatusCodeBadRequest:
+		reasonPhrase = "Bad Request"
+	case StatusCodeInternalServerError:
+		reasonPhrase = "Internal Server Error"
+	}
+	return []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, reasonPhrase))
+}
+
 func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	responseBytes := []byte("HTTP/1.1 ")
 
