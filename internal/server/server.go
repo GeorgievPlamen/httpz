@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"httpz/internal/response"
 	"net"
 	"os"
 	"strconv"
@@ -26,8 +27,14 @@ func (s *Server) handle(conn net.Conn) {
 	// }
 	defer conn.Close()
 
-	resp := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!\n")
-	_, err := conn.Write(resp)
+	// resp := []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 13\r\n\r\nHello World!\n")
+
+	err := response.WriteStatusLine(conn, response.StatusCodeOk)
+	defaultHeders := response.GetDefaultHeaders(0)
+	if err := response.WriteHeaders(conn, defaultHeders); err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
+	// _, err = conn.Write(resp)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
